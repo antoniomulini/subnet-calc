@@ -55,7 +55,7 @@ def calc_ip_range(cidr_text):
     #print(e)
     return "Invalid Subnet: %s" % e
 
-  return "*" + cidr_text + ":* " + \
+  return "*" + cidr_text.replace("/", " /") + ":* " + \
     str(cidr_block[0]) + " - " + str(cidr_block[cidr_block.num_addresses - 1]) + \
     " (Usable addresses: " + str(cidr_block[1]) + " - " + str(cidr_block[cidr_block.num_addresses - 2]) + ")"
 

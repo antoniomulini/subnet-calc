@@ -1,3 +1,5 @@
 python/__pycache__
 terraform/personal.auto.tfvars
 terraform/.terraform
+*.zip
+terraform/terraform.tfstate*

@@ -8,8 +8,5 @@ terraform {
       source = "hashicorp/google"
       version = ">= 3.64.0"
     }
-    template = {
-      source = "hashicorp/template"
-    }
   }
 }
