@@ -1,6 +1,19 @@
 
-from flask import request, json
-import ipaddress, sys
+from flask import json
+import ipaddress, sys, base64
+import google.cloud.logging, google.auth
+
+#from httplib2 import Credentials, Http
+#from oauth2client.service_account import ServiceAccountCredentials
+from googleapiclient.discovery import build
+
+logging_client = google.cloud.logging.Client()
+logging_client.setup_logging()
+
+import logging
+
+SCOPES = ['https://www.googleapis.com/auth/chat.bot']
+CREDENTIALS, project = google.auth.default(scopes=SCOPES)
 
 usage = """
 
@@ -10,9 +23,12 @@ usage = """
 
 """
 
-def on_event(request):
+def on_event(psmessage, context):
   """Handles an event from Google Chat."""
-  event = request.get_json()
+  
+  event = json.loads( base64.b64decode(psmessage['data']).decode('utf-8') )
+  logging.info(f'event = {event}')
+
   if event['type'] == 'ADDED_TO_SPACE':
     resp = 'Thanks for adding me to "%s"!\n' % (event['space']['displayName'] if event['space']['displayName'] else 'this chat')
     resp += usage
@@ -20,7 +36,9 @@ def on_event(request):
     resp = do_subnetcalc(' '.join ( event['message']['text'].split()[2:] ) )
   else:
     return
-  return json.jsonify({'text': resp})
+
+  send_text_to_chat(resp, event['message']['thread']['name'])
+  #return json.jsonify({'text': resp})
 
 def do_subnetcalc(event_message):
   """ Carries out IP subnet calculation based on command and arguments requested
@@ -59,6 +77,16 @@ def calc_ip_range(cidr_text):
     str(cidr_block[0]) + " - " + str(cidr_block[cidr_block.num_addresses - 1]) + \
     " (Usable addresses: " + str(cidr_block[1]) + " - " + str(cidr_block[cidr_block.num_addresses - 2]) + ")"
 
+def send_text_to_chat(text, thread):
+  chat = build('chat', 'v1', credentials=CREDENTIALS)
+  logging.info(f'Sending to threadKey = {thread}')
+  result = chat.spaces().messages().create(
+    parent="/".join(thread.split("/")[:2]),
+    body={'text': text, "thread": {"name": thread}}).execute()
+
+  print(result)
+
+  return
 
 if __name__ == '__main__':
   # Test from command line using:

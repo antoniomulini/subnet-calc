@@ -3,3 +3,4 @@ terraform/personal.auto.tfvars
 terraform/.terraform
 *.zip
 terraform/terraform.tfstate*
+*.json
