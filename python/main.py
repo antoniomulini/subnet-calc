@@ -36,16 +36,20 @@ def on_event(psmessage, context):
   logging.info(f'event = {event}')
 
   if event['type'] == 'ADDED_TO_SPACE':
-    resp = 'Thanks for adding me to "%s"!\n' % (event['space']['displayName'] if event['space']['displayName'] else 'this chat')
+    thread = event['message']['thread']['name'] if 'message' in event else ''
+    resp = 'Thanks for adding me to "%s"!\n' % (event['space']['displayName'] if 'displayName' in event['space'] else 'this chat')
     resp += usage
   elif event['type'] == 'MESSAGE':
+    thread = event['message']['thread']['name']
     resp = do_subnetcalc(' '.join ( event['message']['text'].split()[2:] ) )
+  elif event['type'] == 'REMOVED_FROM_SPACE':
+    return
   else:
     # Something weird has happened
     logging.error("Received unexpected event type/format from pub/sub")
     return
 
-  send_text_to_chat(resp, event['message']['thread']['name'])
+  send_text_to_chat(resp, thread)
   #return json.jsonify({'text': resp})
 
 def do_subnetcalc(event_message):
