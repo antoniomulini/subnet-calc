@@ -1,4 +1,3 @@
-
 from flask import json
 import ipaddress, sys, base64
 import google.cloud.logging, google.auth
@@ -13,6 +12,7 @@ logging_client.setup_logging()
 import logging
 
 SCOPES = ['https://www.googleapis.com/auth/chat.bot']
+# When running in Cloud Function, we're using ADC:
 CREDENTIALS, project = google.auth.default(scopes=SCOPES)
 
 usage = """
@@ -24,7 +24,13 @@ usage = """
 """
 
 def on_event(psmessage, context):
-  """Handles an event from Google Chat."""
+  """ Handles an event from Google Chat.
+  
+  Args:
+      psmessage: message from pub/sub
+      context: pub/sub trigger of Cloud Function context
+  
+  """
   
   event = json.loads( base64.b64decode(psmessage['data']).decode('utf-8') )
   logging.info(f'event = {event}')
@@ -35,6 +41,8 @@ def on_event(psmessage, context):
   elif event['type'] == 'MESSAGE':
     resp = do_subnetcalc(' '.join ( event['message']['text'].split()[2:] ) )
   else:
+    # Something weird has happened
+    logging.error("Received unexpected event type/format from pub/sub")
     return
 
   send_text_to_chat(resp, event['message']['thread']['name'])
@@ -78,15 +86,22 @@ def calc_ip_range(cidr_text):
     " (Usable addresses: " + str(cidr_block[1]) + " - " + str(cidr_block[cidr_block.num_addresses - 2]) + ")"
 
 def send_text_to_chat(text, thread):
-  chat = build('chat', 'v1', credentials=CREDENTIALS)
-  logging.info(f'Sending to threadKey = {thread}')
-  result = chat.spaces().messages().create(
-    parent="/".join(thread.split("/")[:2]),
-    body={'text': text, "thread": {"name": thread}}).execute()
+  try:
+    chat = build('chat', 'v1', credentials=CREDENTIALS)
+    #logging.info(f'Sending to threadKey = {thread}')
+  except google.auth.exceptions.MutualTLSChannelError as e:
+    logging.error(e)
+    return e
 
-  print(result)
+  try:
+    result = chat.spaces().messages().create(
+      parent="/".join(thread.split("/")[:2]),
+      body={'text': text, "thread": {"name": thread}}).execute()
+  except Exception as e:
+    logging.error(e)
+    return e
 
-  return
+  return result
 
 if __name__ == '__main__':
   # Test from command line using:
