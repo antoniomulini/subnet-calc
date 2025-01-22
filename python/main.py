@@ -100,7 +100,12 @@ def send_text_to_chat(text, thread):
   try:
     result = chat.spaces().messages().create(
       parent="/".join(thread.split("/")[:2]),
-      body={'text': text, "thread": {"name": thread}}).execute()
+      messageReplyOption = "REPLY_MESSAGE_FALLBACK_TO_NEW_THREAD",
+      body = {
+        'text': text, 
+        "thread": 
+          {"name": thread}
+        }).execute()
   except Exception as e:
     logging.error(e)
     return e
