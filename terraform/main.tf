@@ -8,7 +8,8 @@ provider "google" {
 
 data "archive_file" "zipit" {
   type        = "zip"
-  source_file = "../python/main.py"
+  source_dir  = "../python"
+  excludes = ["__pycache__", "flasker.py", "subnetcalc.zip", "*.json"]
   output_path = "../python/subnetcalc.zip"
 }
 
@@ -28,24 +29,26 @@ resource "google_storage_bucket_object" "function_code" {
 resource "google_cloudfunctions_function" "subnetcalc" {
   name        = "subnet-calc-bot"
   description = "Google Chat Bot for carrying out IP subnet calculations"
-  runtime     = "python37"
+  runtime     = "python39"
 
   available_memory_mb   = 256
   source_archive_bucket = google_storage_bucket.bucket.name
   source_archive_object = google_storage_bucket_object.function_code.name
-  trigger_http          = true
+
+  event_trigger {
+    event_type = "google.pubsub.topic.publish"
+    resource = google_pubsub_topic.subnet_calc_topic.id
+  }
+
   entry_point           = "on_event"
-
-  ingress_settings = "ALLOW_ALL"
-
 }
 
-resource "google_cloudfunctions_function_iam_binding" "binding" {
-  project        = var.gcp_project
-  region         = var.gcp_region
-  cloud_function = google_cloudfunctions_function.subnetcalc.id
-  role           = "roles/cloudfunctions.invoker"
-  members        = [
-    "allUsers"
-  ]
-}
+#resource "google_cloudfunctions_function_iam_binding" "binding" {
+#  project        = var.gcp_project
+#  region         = var.gcp_region
+#  cloud_function = google_cloudfunctions_function.subnetcalc.id
+#  role           = "roles/cloudfunctions.invoker"
+#  members        = [
+#    "allUsers"
+#  ]
+#}

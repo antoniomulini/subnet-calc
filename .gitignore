@@ -3,3 +3,5 @@ terraform/personal.auto.tfvars
 terraform/.terraform
 *.zip
 terraform/terraform.tfstate*
+*.json
+terraform/.terraform.lock.hcl
