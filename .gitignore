@@ -4,3 +4,4 @@ terraform/.terraform
 *.zip
 terraform/terraform.tfstate*
 *.json
+.terraform.lock.hcl
